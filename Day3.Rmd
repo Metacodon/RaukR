@@ -283,8 +283,9 @@ usethis::create_github_token()
 gitcreds::gitcreds_set()
 ```
 
+Create a repository on github from your current RStudio git repository:
 ```{r}
-
+usethis::use_github()
 ```
 
 ```{r}
