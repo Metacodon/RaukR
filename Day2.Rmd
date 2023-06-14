@@ -1,0 +1,546 @@
+---
+title: "Day2"
+author: "Ali"
+date: "2023-06-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Vectorization in R
+
+### Recursion:
+
+When we explicitly repeat an action using a loop, we talk about iteration. We can also repeat actions by means of recursion, i.e. when a function calls itself. Let us implement a factorial! :
+
+```{r Recursion}
+factorial_rec <- function(x) {
+  if (x == 0 || x == 1)
+    return(1)
+  else
+    return(x * factorial_rec(x - 1)) # Recursive call!
+}
+factorial_rec(5)
+```
+
+## Lab
+
+### Task 1: A large matrix
+
+Vectorization: 
+```{r}
+vec.a <- c(1, 2, 3, 4)
+vec.a * 2
+```
+Loop:
+```{r}
+for (i in vec.a) {
+  vec.a[i] <- vec.a[i] * 2
+}
+vec.a
+```
+
+```{r}
+data <- c(1:1000000)
+my_matrix <- matrix(data, nrow = 100000, ncol = 10, byrow = FALSE)
+for.sum <- vector()
+for (i in 1:nrow(my_matrix)) {
+  for.sum[i] <- sum(my_matrix[i,])
+}
+head(for.sum)
+```
+
+```{r}
+app.sum <- apply(my_matrix, MARGIN = 1, sum)
+head(app.sum)
+```
+
+```{r}
+rowSums.sum <- rowSums(my_matrix)
+head(rowSums.sum)
+```
+
+```{r}
+identical(for.sum,app.sum)
+identical(for.sum,rowSums.sum)
+typeof(rowSums.sum)
+identical(for.sum,as.integer(rowSums.sum))
+```
+
+### Task 2: Fibonacci sequence
+
+N-th Fibonacci number:
+```{r}
+fib_rec <- function(n) {
+    if (n == 0 || n == 1) { 
+        return(n) 
+    } else {
+        return(fib_rec(n - 1) + fib_rec(n - 2))
+    }
+}
+fib_rec(10)
+```
+
+Generate Fibonacci sequence:
+```{r}
+#sapply: apply a Function over a List or Vector
+sapply(0:10, FUN = fib_rec) 
+```
+
+Vectorized Fibonacci generator:
+```{r}
+vec_fib_rec <- Vectorize(fib_rec)
+vec_fib_rec(0:10)
+```
+
+## Parallelization in R:
+
+``install.packages("future",dependencies = T)``
+
+plan(sequential):
+```{r sequential}
+library(future)
+future::plan(sequential)
+
+a %<-% {
+  Sys.sleep(3)
+  a <- 1
+}
+b %<-% {
+  Sys.sleep(3)
+  b <- 2
+}
+
+a + b
+```
+
+plan(multicore):
+```{r multicore}
+library(future)
+availableCores()
+plan(multicore)
+
+a %<-% {
+  Sys.sleep(3)
+  a <- 1
+}
+b %<-% {
+  Sys.sleep(3)
+  b <- 2
+}
+
+a + b
+```
+
+## Lab
+The first thing we want to do is install the package required for the exercise.
+```{r}
+install.packages("future")
+```
+
+The basic construct for a future is this:
+```{r}
+a %<-% { expression(s) }
+```
+
+```{r}
+system.time({vec <- sample(100,200000000,replace=T)})
+length(vec)
+```
+
+```{r}
+future::plan(sequential)
+options(future.rng.onMisuse = "ignore")
+system.time({
+a %<-% {a <- sample(100,50000000,replace=T)}
+b %<-% {b <- sample(100,50000000,replace=T)}
+c %<-% {c <- sample(100,50000000,replace=T)}
+d %<-% {d <- sample(100,50000000,replace=T)}
+vec <- a+b+c+d
+})
+length(vec)
+```
+
+```{r}
+future::plan(multisession)
+options(future.rng.onMisuse = "ignore")
+system.time({
+a %<-% {a <- sample(100,50000000,replace=T)}
+b %<-% {b <- sample(100,50000000,replace=T)}
+c %<-% {c <- sample(100,50000000,replace=T)}
+d %<-% {d <- sample(100,50000000,replace=T)}
+vec <- a+b+c+d
+})
+length(vec)
+```
+
+```{r}
+future::plan(multicore)
+options(future.rng.onMisuse = "ignore")
+system.time({
+a %<-% {a <- sample(100,50000000,replace=T)}
+b %<-% {b <- sample(100,50000000,replace=T)}
+c %<-% {c <- sample(100,50000000,replace=T)}
+d %<-% {d <- sample(100,50000000,replace=T)}
+vec <- a+b+c+d
+})
+length(vec)
+```
+
+```{r}
+library(tictoc)
+future::plan(multicore)
+options(future.rng.onMisuse = "ignore")
+tic()
+a %<-% {a <- sample(100,50000000,replace=T)}
+b %<-% {b <- sample(100,50000000,replace=T)}
+c %<-% {c <- sample(100,50000000,replace=T)}
+d %<-% {d <- sample(100,50000000,replace=T)}
+vec <- a+b+c+d
+toc()
+length(vec)
+```
+
+
+```{r}
+plan(multisession)
+tic()
+#Create a new environment
+v <- new.env()
+for (name in c("a", "b", "c", "d")) {
+  v[[name]] %<-% {
+        sample(100,50000000,replace=T)
+     }
+}
+#Turn the environment back into a list
+v <- as.list(v)
+
+#To turn the list of vectors into the same format, one long vector, that we had above when running "a + b + c"
+vec <- Reduce(c,v)
+toc()
+length(vec)
+```
+
+## Object-Oriented Programming Models in R
+
+### S4 classes
+
+```{r}
+setClass('gene', 
+         representation(name='character', 
+                        coords='numeric')
+         )
+
+.intragenic_region <- setClass(Class = 'intragenic_region', 
+                               slots = c(
+                                 name='character', 
+                                 coords='numeric'
+                               )
+                              )
+
+my.gene <- new('gene', name = 'ANK3', 
+               coords = c(1.4e6, 1.412e6))
+
+# but since SetClass returns a low-level constructor
+my.intra1 <- .intragenic_region(name = 'int1', 
+                  coords = c(1.7e6, 1.717e6))
+#my.intra2 <- new('intragenic_region', name = 'int1', 
+#               coords = c(1.7e6, 1.717e6))
+```
+
+```{r}
+.ext_gene <- setClass(Class = 'ext_gene',
+                      contains = "gene",
+                      slots = c(
+                        gene = 'gene',
+                        feature_name = 'character',
+                        feature_value = 'character'
+                      ))
+
+ANK3 <- .ext_gene(name = 'ANK3', 
+                  coords = c(1.4e6, 1.412e6),
+                  feature_name = 'num_introns',
+                  feature_value = '5')
+str(ANK3)
+```
+
+```{r}
+my.gene@name # access using @ operator
+my.gene@coords[2] # access the 2nd element in slot coords
+```
+
+```{r}
+setMethod('print', 'gene', 
+          function(x) {
+              cat('GENE: ', x@name, ' --> ')
+              cat('[', x@coords, ']')
+          })
+print(my.gene) # and we use the newly defined print
+```
+
+### S3 Classes
+
+```{r}
+obj <- factor(c("a", "b", "c"))
+typeof(obj)
+class(obj)
+attributes(obj)
+str(obj)
+print(obj)
+```
+
+```{r}
+gf <- structure(list(), class = 'genomic_features')
+class(gf)
+```
+OR
+```{r}
+gf <- list()
+class(gf) <- 'genomic_features'
+class(gf)
+```
+
+## Lab
+
+### S3 Classes
+```{r}
+obj <- lm(speed ~ dist, data = cars)
+class(obj)
+typeof(obj)
+attributes(obj)
+str(obj)
+```
+
+```{r}
+str(unclass(obj))
+```
+
+```{r}
+library(tidyverse)
+obj <- as_tibble(mtcars)
+class(obj)
+typeof(obj)
+str(obj)
+```
+
+```{r}
+str(unclass(obj))
+```
+
+```{r}
+meta_frame <- function(df, descr, creation) {
+  structure(
+    list(
+      df = df, 
+      descr = descr, 
+      creation = creation
+    ),
+    class = "meta_frame"
+  )
+}
+obj <- meta_frame(mtcars, 'The mtcars dataset', '10-06-2018')
+str(obj)
+obj$descr
+```
+
+```{r}
+# Constructor
+new_protein <- function(sequence, length, ptm_site, ptm_type) {
+  stopifnot(is.character(sequence))
+  stopifnot(is.integer(length))
+  stopifnot(is.numeric(ptm_site))
+  stopifnot(is.character(ptm_type))
+  structure(
+    sequence,
+    length = length,
+    ptm_site = ptm_site,
+    ptm_type = ptm_type,
+    class = "protein"
+  )
+}
+
+# Validator
+validate_protein <- function(x) {
+  sequence <- x[1]
+  len <- attr(x, 'length')
+  ptm_site <- attr(x, 'ptm_site')
+  ptm_type <- attr(x, 'ptm_type')
+  if (is.na(sequence)) {
+    stop('Sequence is missing!', call. = FALSE)
+  }
+  if (length(ptm_site) != length(ptm_type)) {
+    stop('PTM type and site differ in length!', call. = FALSE)
+  }
+  if ((sum(!ptm_type %in% c('phosphorylation', 'methylation'))) > 0) {
+    stop('Invalid PTM types detected!', call. = FALSE)
+  }
+  return(x)
+}
+
+# Helper
+protein <- function(sequence, ptm) {
+  sequence <- sequence
+  len <- nchar(sequence)
+  ptm_site <- ptm[[1]]
+  ptm_type = ptm[[2]]
+  validate_protein(new_protein(sequence, len, ptm_site, ptm_type))
+}
+```
+
+```{r}
+print.protein <- function(x) {
+  sequence <- unclass(x)
+  len <- attr(x, 'length')
+  ptm_site <- attr(x, 'ptm_site')
+  ptm_type <- attr(x, 'ptm_type')
+  print("============== Protein ==============")
+  print(paste0("Sequence:", sequence))
+  print(paste0("Length: ", len, " aa."))
+  print("============== PTM section ==============")
+  print(paste0("Site: ", ptm_site))
+  print(paste0("Type: ", ptm_type))
+}
+```
+
+```{r}
+my_prot <- protein("ARNDKLLQWYTTARD", 
+                   list(
+                     site = c(3, 5), 
+                     type = c('phosphorylation', 'methylation')
+                    )
+                  )
+class(my_prot)
+typeof(my_prot)
+print(my_prot)
+```
+
+### S4 Classes
+```{r}
+# Generator
+.protein <- setClass('protein',
+                     slots = c(
+                       sequence = 'character',
+                       length = 'numeric',
+                       ptm_site = 'numeric',
+                       ptm_type = 'character'
+                      )
+                    )
+
+# Constructor
+protein <- function(sequence, ptm) {
+  sequence <- sequence
+  len <- nchar(sequence)
+  ptm_site <- ptm[[1]]
+  ptm_type <- ptm[[2]]
+  if (is.na(sequence)) {
+    stop('Sequence is missing!', call. = FALSE)
+  }
+  if (length(ptm_site) != length(ptm_type)) {
+    stop('PTM type and site differ in length!', call. = FALSE)
+  }
+  if ((sum(!ptm_type %in% c('phosphorylation', 'methylation'))) > 0) {
+    stop('Invalid PTM types detected!', call. = FALSE)
+  }
+  pt <- .protein(sequence = sequence, 
+           length = len, 
+           ptm_site = ptm_site, 
+           ptm_type = ptm_type)
+  return(pt)
+}
+```
+
+```{r}
+my_prot <- protein("ARNDKLLQWYTTARD", 
+                   list(
+                     site = c(3, 5), 
+                     type = c('phosphorylation', 'methylation')
+                    )
+                  )
+class(my_prot)
+typeof(my_prot)
+str(my_prot)
+```
+
+```{r}
+setMethod('print', 'protein', 
+  function(x) {
+    sequence <- x@sequence
+    len <- x@length
+    ptm_site <- x@ptm_site
+    ptm_type <- x@ptm_type
+    print("============== Protein ==============")
+    print(paste0("Sequence:", sequence))
+    print(paste0("Length: ", len, " aa."))
+    print("============== PTM section ==============")
+    print(paste0("Site: ", ptm_site))
+    print(paste0("Type: ", ptm_type))
+})
+
+print(my_prot)
+```
+
+```{r}
+.ext_protein <- setClass('ext_protein', 
+                         contains = c('protein'),
+                         slots = c(
+                           prot = 'protein',
+                           feature_type = 'character',
+                           feature_position = 'numeric',
+                           feature_value = 'character'
+                         ))
+my_ext_prot <- .ext_protein(prot = my_prot,
+                           feature_type = 'modification',
+                           feature_position = 11,
+                           feature_value = 'absent'
+                  )
+class(my_ext_prot)
+typeof(my_ext_prot)
+str(my_ext_prot)
+```
+
+### R6 Classes
+```{r}
+require(R6)
+protein <- R6Class(classname = 'protein',
+                      public = list(
+                         seq = NA,
+                      length = NULL,
+                    ptm_site = NA,
+                    ptm_type = NA,
+   initialize = function(seq = NA, ptm = NA) {
+
+self$seq <- seq
+self$length <- nchar(self$seq)
+self$ptm_site <- ptm[[1]]
+self$ptm_type <- ptm[[2]]
+self$greet()
+
+# Check types
+stopifnot(is.character(seq))
+                            
+#Validate
+if (is.na(self$seq)) {
+stop('Sequence is missing!', call. = FALSE)
+}
+if (length(self$ptm_site) != length(self$ptm_type)) {
+stop('PTM type and site differ in length!', call. = FALSE)
+}
+if ((sum(!self$ptm_type %in% c('phosphorylation', 'methylation'))) > 0) {
+stop('Invalid PTM types detected!', call. = FALSE)
+}
+  },
+greet = function() {
+      cat(paste0("Hello, This is protein ", self$seq, ".\n"))
+}
+ )
+)
+
+my_new_prot <- protein$new(seq = "ARNDKLLQWYTTARD", ptm = 
+                   list(
+                     site = c(3, 5), 
+                     type = c('phosphorylation', 'methylation')
+                    ))
+str(my_new_prot)
+```

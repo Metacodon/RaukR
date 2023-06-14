@@ -1,0 +1,299 @@
+---
+title: "Day3"
+author: "Ali"
+date: "2023-06-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Tidyverse
+
+Native R pipe
+```{r}
+c(1,2,3,4,5) |> mean()
+```
+
+`_` as placeholder for **name** arguments.
+```{r}
+mtcars |> lm(mpg ~ disp, data = _)
+```
+
+Placeholders in `magrittr` Pipes
+```{r}
+library(tidyverse)
+M <- rnorm(4) %>% matrix(nrow = 2)
+M %>% `%*%`(., .)
+```
+
+Placeholders for nested expressions
+```{r}
+print_M_summ <- function(nrow, ncol) paste0('Matrix M has: ', nrow, ' rows and ', ncol, ' cols.')
+M %>% {print_M_summ(nrow(.), ncol(.))}
+```
+
+```{r}
+f <- . %>% sin %>% cos
+f
+```
+
+## Lab
+```{r}
+library(magrittr)
+```
+
+```{r}
+my_cars <- mtcars[, c(1:4, 10)]
+my_cars <- my_cars[my_cars$disp > mean(my_cars$disp), ]
+my_cars <- colMeans(my_cars)
+my_cars
+```
+
+```{r}
+my_cars <- mtcars %>%
+            select(c(1:4, 10)) %>%
+            filter(disp > mean(disp)) %>%
+            colMeans()
+my_cars
+```
+
+```{r}
+summary(cars)
+colSums(cars)
+```
+
+```{r}
+cars %T>% {print(summary(.))} %>% colSums(.)
+
+```
+
+```{r}
+cor(mtcars$gear, mtcars$mpg)
+```
+
+```{r}
+mtcars %$% cor(gear, mpg)
+```
+
+```{r}
+cor(mtcars)
+```
+
+```{r}
+mtcars %>% cor()
+```
+
+```{r}
+dim_summary <- function(nrows, ncols) {
+  print(
+    paste0('Matrix M has: ', nrows, ' rows and ', ncols, ' columns.')
+  )
+}
+```
+
+```{r}
+distr1 <- rnorm(16)
+M <- matrix(distr1, ncol = 4)
+plot(M)
+M <- M + sample(M)
+dim_summary(nrows = nrow(M), ncols = ncol(M))
+```
+```{r}
+M <- rnorm(16) %>%
+  matrix(ncol = 4) %T>%
+  plot() %>%
+  `+`(., sample(.)) %T>%
+  {dim_summary(nrow(.), ncol(.))}
+```
+```{r}
+distr2 <- rnorm(16)
+N <- matrix(distr2, ncol = 4)
+colnames(N) <- (letters[1:4])
+summary(N)
+N <- N + 0
+N
+```
+
+```{r}
+N <- rnorm(16) %>%
+  matrix(ncol = 4) %>%
+  `colnames<-`(letters[1:4]) %T>%
+  {print(summary(.))} %>% `+`(., 0)
+N
+```
+
+```{r}
+P <- M %x% t(N)
+heatmap(P)
+colnames(P) <- letters[1:dim(P)[2]]
+cor(P[ ,'a'], P[ ,'i'])
+```
+
+```{r}
+P <- M %>%
+  `%x%`(., t(N)) %T>%
+  heatmap() %>%
+  `colnames<-`(letters[1:dim(.)[2]]) %>%
+  as.data.frame() %$%
+  cor(a, i)
+print(P)
+```
+
+## Tibble
+```{r}
+as_tibble(iris)
+```
+
+```{r}
+  tibble(
+    x = 1,          # recycling
+    y = runif(50), 
+    z = x + y^2,
+    outcome = rnorm(50)
+  )
+```
+
+```{r}
+as_tibble(cars)
+```
+
+```{r}
+vehicles <- as_tibble(cars[1:5,])
+vehicles[['speed']]
+vehicles[[1]]
+vehicles$speed
+```
+
+```{r}
+vehicles %>% .$speed
+vehicles %>% .[['speed']]
+vehicles %>% .[[1]]
+```
+
+```{r}
+as.data.frame(vehicles)
+```
+
+```{r}
+cars <- cars[1:5,]
+cars$spe      # partial matching
+cars$gear     # Non-existing Columns
+```
+```{r}
+colnames(vehicles)
+vehicles$spe  # no partial matching 
+vehicles$gear # Non-existing Columns
+```
+
+## Lab
+```{r}
+vehicles <- as_tibble(mtcars)
+vehicles[[2]]
+vehicles[["cyl"]]
+vehicles$cyl
+```
+
+```{r}
+vehicles %>% .[[2]]
+vehicles %>% .[['cyl']]
+vehicles %>% .$cyl
+```
+
+```{r}
+vehicles
+vehicles %>% print(n = 30, width = Inf)
+```
+
+```{r}
+vehicles %>% head(n = 30)
+options(tibble.print_min = 15, tibble.print_max = 30)
+```
+
+```{r}
+automobiles <- as.data.frame(vehicles)
+```
+
+```{r}
+tab <- tribble(
+  ~id, ~event, ~date,
+  1, 'success', '24-04-2017',
+  2, 'failed', '25-04-2017',
+  3, 'failed', '25-04-2017',
+  4, 'success', '27-04-2017'
+)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+## git with R
+```{r}
+usethis::git_sitrep()
+usethis::use_git_config(user.name = "Ali", user.email = "Metacodon@users.noreply.github.com")
+```
+
+```{r}
+#Takes you to github.com create new token.
+usethis::create_github_token()
+
+#Use to set your new token in your configuration
+gitcreds::gitcreds_set()
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+```{r}
+
+```
+
+```{r}
+
+```

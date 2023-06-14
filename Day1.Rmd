@@ -1,0 +1,277 @@
+---
+title: "Day1"
+author: "Ali"
+date: "2023-06-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Functions
+
+The pieces that make a function:
+
+```{r function recepie}
+function_name <- function(param1, param2 = 20, ...){
+  param1*2 # Operational space
+  param1+param2 # What is returned. Alt, use return(param1+param2)
+}
+```
+
+### Executing an R script
+
+-   Interactively: `source("myscript.R")` in R console
+
+-   Command line: `Rscript myscript.R`
+
+-   As executable file: `path/myscript.R`
+
+    -   if: Script is executable: chmod +x myscript.R
+    -   First line in script is a hashbang e.g. #!/usr/bin/env
+    -   Rscript Script's path is included in call or \$PATH
+
+## Lab
+
+### R Functions
+
+```{r lab}
+function_name <- function(param1, param2 = "Lucy"){
+  if (param2 == "Lucy") {
+    output <- paste("Lucy in the sky with ",param1,"\n",sep="")}
+  else {
+    output <- paste(param1," in the ocean with ",param2,"\n",sep="")}
+  return(cat(output))
+}
+function_name("Ali")
+variable_a <- function_name("Tom")
+```
+
+Now lets see the power of your function in action. Write a loop that executes your function multiple times.
+
+```{r lab}
+for (i in c("Tom","Mary","Mahesh","Henrik")){
+  function_name(param1=i,param2="Brad")
+  function_name(param1=i,param2="Lucy")
+}
+```
+
+Now let's take a look at the special ellipsis parameter for functions. Basically the ellipsis say that a function can take additional arguments. The function should work without arguments given at the ellipsis. One great example of this is the data.frame() function.
+
+```{r lab}
+data.frame(a=c(1,2,3))
+data.frame(a=c(1,2,3),b=c(4,5,6))
+data.frame(a=c(1,2,3),b=c(4,5,6),d=c(7,8,9))
+data.frame()
+```
+
+Another example where ellipsis are often used is to pass plot arguments into a function. Example:
+
+```{r lab}
+my_plot <- function(...){
+  plot(c(1,2,3),c(1,2,3),...)
+}
+
+my_plot(main="Great title", xlab = "This will be X-label of plot", ylab="Y-label")
+```
+
+### R Scripts
+
+```{bash lab}
+Rscript myscriptfile0.R
+```
+
+### Passing and parsing arguments
+
+```{bash lab}
+./myscriptfile1.R 15
+```
+
+```{bash lab}
+./myscriptfile2.R -m 5 -s 1
+```
+
+### Standard in and out
+
+```{bash lab}
+echo 100 | ./myscriptfile3.R 1> stdout.txt
+echo 100 | ./myscriptfile3.R 2> stderr.txt
+echo 100 | ./myscriptfile3.R &> both.txt
+cat input.txt | ./myscriptfile3.R
+```
+
+
+## Best Coding Practices in R
+
+-   Avoid T and F as variable names.
+-   Avoid one letter variable names generally. Best way of notation in R: `snake_notation_looks_like_this`
+-   Be consistent!
+-   Not too long.
+-   Special variable name: LETTERS, letters, month.abb, month.name, pi
+-   Variable names beginning with period are hidden: .my_secret_variable 👻 will not be shown but can be accessed. You can see it with `ls(all.names=TRUE)`
+
+#### How to write good functions
+
+-   avoid accessing and modifying globals
+    -   avoid 🚫 a \<\<- 42
+    -   and 🆗 use a closure instead
+    
+## Lab
+
+Task: Obscure Code
+```{r}
+iter_max <- 5
+col_num <- 10
+row_num <- 10
+A <- matrix(rep(1, col_num * row_num), nrow = row_num)
+for (i in 1:col_num) {
+  for (j in 1:row_num) {
+    if (i >= iter_max) {
+      A[i, j] <- NA
+    }
+  }
+}
+
+# Can you improve the code more by eliminating loops or at least one of them?
+```
+
+Task: Better Formatting
+```{r}
+simulate_genotype <- function(q, N = 100) {
+  if (length(q) == 1) {
+    p <- (1 - q)
+    f_gt <- c(p^2, (2 * p * q), q^2) # AA, AB, BB
+  } else {
+    f_gt <- q
+  }
+  sample(c('AA', 'AB', 'BB'), 
+         size = N, 
+         prob = f_gt, 
+         replace = TRUE)
+}
+simulate_genotype(1)
+simulate_genotype(0)
+simulate_genotype(0.7)
+```
+
+Task: Hidden Variable
+```{r}
+.my_months <- c(month.abb[10:12])
+.my_months <- rev(rev(month.abb)[1:3])
+```
+
+Task: Pipeline-friendly Function
+```{r}
+library(tidyverse)
+my_filter <- function(x, threshold = 1, scalar = 5) {
+  x[x >= threshold] <- NA 
+  x * scalar
+}
+
+# Test:
+c(-5, 5) %>% my_filter()
+```
+
+Task: Untidy Code?
+```{r}
+simulate_phenotype <- function(pop_params, gp_map, gtype, N) {
+  pop_mean <- pop_params[1]
+  pop_var <- pop_params[2]
+  pheno <- rnorm(n = N, mean = pop_mean, sd = sqrt(pop_var))
+  effect <- rep(0, times = length(N))
+  for (gt_iter in c('AA', 'AB', 'BB')) {
+    effect[gtype == gt_iter] <- rnorm(n = sum(gtype == gt_iter), 
+                                      mean = gp_map[gt_iter, 'mean_eff'], 
+                                      sd = sqrt(gp_map[gt_iter, 'var_eff']))
+  }
+  dat <- data.frame(gt = gtype, raw_pheno = pheno, effect = effect, pheno = pheno + effect)
+  return(dat)
+}
+```
+
+Task: Computing Variance
+```{r}
+sample_mean <- function(x) {
+  sum(x) / length(x)
+} 
+
+sum_squared_deviations <- function(x) {
+  tmp <- (x - sample_mean(x))^2
+  sum(tmp)
+}
+
+std_dev <- function(x) {
+  sqrt(sum_squared_deviations(x) / (length(x) - 1))
+}
+
+variance <- function(x) {
+  std_dev(x)^2
+}
+```
+
+Task: Writing a Wrapper Function
+```{r}
+randomSampleInt <- function(x, verbose, length, seed = 42) {
+  if (verbose) {
+    print(paste0('Generating random sample of ', length, ' integers using seed ', seed))
+  }
+  set.seed(seed)
+  sampleInt <- sample(x = x, size = length, replace = TRUE)
+  return(sampleInt)
+} 
+
+randomSampleLetter <- function(N, silent=T, lett) {
+  if (!silent) {
+    print(paste0('Generating random sample of ', N, ' letters.'))
+  }
+  sample <- sample(x = lett, size = N, replace = TRUE)
+  return(sample)
+}
+
+randomSampleLetterWrapper <- function(x, verbose, length, seed = 42) {
+  set.seed(seed)
+  randomSampleLetter(N = length, silent = !verbose, lett = x)
+}
+randomSampleLetterWrapper(c("a","b","c"),F,100)
+randomSampleLetterWrapper(c("a","b","c"),T,100,seed = 123)
+```
+
+Task: Customizing plot
+```{r}
+graphics::plot.default
+my_plot <- function(x, ...) {
+  plot(x, pch = 3, col = 'red', ...) 
+}
+```
+
+Task: Adding Arguments to a Function
+```{r}
+red_plot <- function(x, y) { 
+  plot(x, y, las = 1, cex.axis = .8, ...)
+}
+
+red_plot(1, 1, col = 'red', pch = 19) # Does not work.
+formals(red_plot) <- c(formals(red_plot), alist(... = )) # Fix.
+red_plot(1, 1, col = 'red', pch = 19) # Works!
+```
+
+Task: Using options
+```{r}
+.Options
+options(prompt = "hello :-) > ")
+.Options
+options(prompt = "> ") # restoring the default
+.Options
+```
+
+## Publishing with Quarto
+
+```{r Quarto}
+install.packages("quarto", dependencies = T)
+```
+
+
+## Debugging, Profiling, and Optimization
+
+
